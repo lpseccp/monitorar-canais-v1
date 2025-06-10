@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d6efd" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Monitorador de Links</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background: #f0f0f0;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .notification {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: #ffe0e0;
+      border: 1px solid red;
+      border-radius: 6px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Monitorador de Anúncios</h1>
+  <input type="text" id="urlInput" placeholder="Cole o link do anúncio aqui" size="40" />
+  <button onclick="addUrl()">Adicionar</button>
+
+  <ul id="urlList"></ul>
+  <div id="notificationArea"></div>
+
+  <script>
+    const STORAGE_KEY = "monitorador_urls";
+    const TELEGRAM_TOKEN = "7796446136:AAFEGpoFChEYookx8CD9aabvbnPAXXbn_AI";
+    const CHAT_ID = "910453924";
+
+    function loadUrls() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }
+
+    function saveUrls(urls) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(urls));
+    }
+
+    function renderUrls() {
+      const urls = loadUrls();
+      const ul = document.getElementById("urlList");
+      ul.innerHTML = "";
+      urls.forEach((url, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span>${url}</span>
+          <button onclick="removeUrl(${index})">Remover</button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    function addUrl() {
+      const input = document.getElementById("urlInput");
+      const url = input.value.trim();
+      if (!url) return;
+      const urls = loadUrls();
+      urls.push(url);
+      saveUrls(urls);
+      input.value = "";
+      renderUrls();
+    }
+
+    function removeUrl(index) {
+      const urls = loadUrls();
+      urls.splice(index, 1);
+      saveUrls(urls);
+      renderUrls();
+    }
+
+    function notify(message) {
+      const area = document.getElementById("notificationArea");
+      const div = document.createElement("div");
+      div.className = "notification";
+      div.innerText = message;
+      area.appendChild(div);
+      setTimeout(() => div.remove(), 10000);
+    }
+
+    async function sendTelegramMessage(text) {
+      const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+      const data = {
+        chat_id: CHAT_ID,
+        text: text,
+        parse_mode: "Markdown"
+      };
+
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+      } catch (error) {
+        console.error("Erro ao enviar para o Telegram:", error);
+      }
+    }
+
+    async function checkUrls() {
+      const urls = loadUrls();
+      for (const url of urls) {
+        try {
+          const response = await fetch(url, { method: "HEAD" });
+          if (!response.ok) {
+            const msg = `⚠️ O link saiu do ar: ${url}`;
+            notify(msg);
+            await sendTelegramMessage(msg);
+          }
+        } catch (error) {
+          const msg = `❌ Erro ao acessar: ${url}`;
+          notify(msg);
+          await sendTelegramMessage(msg);
+        }
+      }
+    }
+
+    renderUrls();
+    checkUrls(); // Verifica ao abrir
+    setInterval(checkUrls, 60000); // Verifica a cada 60 segundos
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log("SW registrado", reg))
+        .catch(err => console.error("Erro ao registrar SW", err));
+    }
+  </script>
+</body>
+</html>
