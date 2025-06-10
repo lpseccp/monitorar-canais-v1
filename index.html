@@ -50,6 +50,8 @@
 
   <script>
     const STORAGE_KEY = "monitorador_urls";
+    const TELEGRAM_TOKEN = "7796446136:AAFEGpoFChEYookx8CD9aabvbnPAXXbn_AI";
+    const CHAT_ID = "910453924";
 
     function loadUrls() {
       return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -100,16 +102,41 @@
       setTimeout(() => div.remove(), 10000);
     }
 
+    async function sendTelegramMessage(text) {
+      const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+      const data = {
+        chat_id: CHAT_ID,
+        text: text,
+        parse_mode: "Markdown"
+      };
+
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+      } catch (error) {
+        console.error("Erro ao enviar para o Telegram:", error);
+      }
+    }
+
     async function checkUrls() {
       const urls = loadUrls();
       for (const url of urls) {
         try {
           const response = await fetch(url, { method: "HEAD" });
           if (!response.ok) {
-            notify(`❌ O link está offline: ${url}`);
+            const msg = `⚠️ O link saiu do ar: ${url}`;
+            notify(msg);
+            await sendTelegramMessage(msg);
           }
         } catch (error) {
-          notify(`❌ Erro ao verificar: ${url}`);
+          const msg = `❌ Erro ao acessar: ${url}`;
+          notify(msg);
+          await sendTelegramMessage(msg);
         }
       }
     }
