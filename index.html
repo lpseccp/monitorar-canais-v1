@@ -28,6 +28,15 @@
       border-radius: 6px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+    }
+    .notification {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: #ffe0e0;
+      border: 1px solid red;
+      border-radius: 6px;
+      color: red;
     }
   </style>
 </head>
@@ -37,6 +46,7 @@
   <button onclick="addUrl()">Adicionar</button>
 
   <ul id="urlList"></ul>
+  <div id="notificationArea"></div>
 
   <script>
     const STORAGE_KEY = "monitorador_urls";
@@ -81,8 +91,32 @@
       renderUrls();
     }
 
-    // Inicializa
+    function notify(message) {
+      const area = document.getElementById("notificationArea");
+      const div = document.createElement("div");
+      div.className = "notification";
+      div.innerText = message;
+      area.appendChild(div);
+      setTimeout(() => div.remove(), 10000);
+    }
+
+    async function checkUrls() {
+      const urls = loadUrls();
+      for (const url of urls) {
+        try {
+          const response = await fetch(url, { method: "HEAD" });
+          if (!response.ok) {
+            notify(`❌ O link está offline: ${url}`);
+          }
+        } catch (error) {
+          notify(`❌ Erro ao verificar: ${url}`);
+        }
+      }
+    }
+
     renderUrls();
+    checkUrls(); // Verifica ao abrir
+    setInterval(checkUrls, 60000); // Verifica a cada 60 segundos
   </script>
 
   <script>
@@ -94,4 +128,3 @@
   </script>
 </body>
 </html>
-
