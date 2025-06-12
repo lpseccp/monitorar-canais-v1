@@ -9,8 +9,8 @@ const bot = new TelegramBot(BOT_TOKEN);
 
 // Lista de anúncios a monitorar
 let linksMonitorados = [
-  "https://accs.com/anuncio-exemplo-1",
-  "https://accs.com/anuncio-exemplo-2"
+  "https://accs-market.com/group/427586",
+  "https://accs-market.com/group/427822",
 ];
 
 // Objeto para controlar status anterior
