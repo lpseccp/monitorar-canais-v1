@@ -21,16 +21,27 @@ async function verificarAnuncios() {
   for (const link of linksMonitorados) {
     try {
       const response = await axios.get(link);
-      if (response.status === 200) {
-        console.log(`✅ ${link} ainda está no ar.`);
-        statusAnuncios[link] = true;
-      }
-    } catch (err) {
-      if (statusAnuncios[link] !== false) {
+      const html = response.data;
+
+      // Frase que aparece quando o anúncio saiu do ar
+      const anuncioRemovidoMsg = "This listing either doesn’t exist, has been removed, or is already in the middle of a deal.";
+
+      // Verifica se a frase aparece no HTML
+      const anuncioForaDoAr = html.includes(anuncioRemovidoMsg);
+
+      if (anuncioForaDoAr && statusAnuncios[link] !== false) {
         console.log(`❌ ${link} saiu do ar!`);
         bot.sendMessage(CHAT_ID, `⚠️ O anúncio saiu do ar: ${link}`);
         statusAnuncios[link] = false;
+      } else if (!anuncioForaDoAr && statusAnuncios[link] !== true) {
+        console.log(`✅ ${link} voltou ao ar.`);
+        bot.sendMessage(CHAT_ID, `✅ O anúncio voltou ao ar: ${link}`);
+        statusAnuncios[link] = true;
+      } else {
+        console.log(`✅ ${link} está no ar normalmente.`);
       }
+    } catch (err) {
+      console.log(`Erro ao acessar ${link}:`, err.message);
     }
   }
 }
